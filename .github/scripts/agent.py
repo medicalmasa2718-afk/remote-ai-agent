@@ -96,25 +96,29 @@ def main():
 上記の要望を解決するためのファイル修正を作成してください。
 """
 
-    models_to_try = ["gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
+    import time
+    models_to_try = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
     response = None
     for model_name in models_to_try:
-        try:
-            print(f"Requesting Gemini with model: {model_name}...")
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    response_mime_type="application/json",
-                    temperature=0.2,
+        for attempt in range(2):
+            try:
+                print(f"Requesting Gemini with model: {model_name} (attempt {attempt+1})...")
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        response_mime_type="application/json",
+                        temperature=0.2,
+                    )
                 )
-            )
-            print(f"Success with model: {model_name}")
+                print(f"Success with model: {model_name}")
+                break
+            except Exception as e:
+                print(f"Model {model_name} attempt {attempt+1} failed: {e}")
+                time.sleep(2)
+        if response:
             break
-        except Exception as e:
-            print(f"Model {model_name} failed: {e}")
-            continue
 
     if not response:
         print("All models failed.")
