@@ -7,7 +7,7 @@ from google.genai import types
 
 def run_cmd(cmd, env=None, check=True):
     print(f"Executing: {' '.join(cmd)}")
-    res = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    res = subprocess.run(cmd, capture_output=True, text=True, env=env, stdin=subprocess.DEVNULL, timeout=60)
     if check and res.returncode != 0:
         print(f"Command failed with code {res.returncode}")
         print(f"Stdout: {res.stdout}")
@@ -96,16 +96,29 @@ def main():
 上記の要望を解決するためのファイル修正を作成してください。
 """
 
-    print("Requesting Gemini...")
-    response = client.models.generate_content(
-        model="gemini-3.8-flash",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            response_mime_type="application/json",
-            temperature=0.2,
-        )
-    )
+    models_to_try = ["gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
+    response = None
+    for model_name in models_to_try:
+        try:
+            print(f"Requesting Gemini with model: {model_name}...")
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                    temperature=0.2,
+                )
+            )
+            print(f"Success with model: {model_name}")
+            break
+        except Exception as e:
+            print(f"Model {model_name} failed: {e}")
+            continue
+
+    if not response:
+        print("All models failed.")
+        sys.exit(1)
 
     response_text = response.text.strip()
     try:
